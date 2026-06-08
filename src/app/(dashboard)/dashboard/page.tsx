@@ -2,7 +2,7 @@ import { createClient } from '@/lib/supabase/server'
 import { format } from 'date-fns'
 import { tr } from 'date-fns/locale'
 import Link from 'next/link'
-import { TaskList } from '../projects/[id]/TaskList'
+import { EventList } from './EventList'
 
 export default async function DashboardPage() {
   const supabase = await createClient()
@@ -26,15 +26,6 @@ export default async function DashboardPage() {
     .neq('status', 'completed')
     .neq('status', 'cancelled')
     .order('event_date', { ascending: true })
-
-  // Fetch active tasks for dashboard
-  const { data: dashboardTasks } = await supabase
-    .from('tasks')
-    .select('*, projects(title)')
-    .neq('status', 'done')
-    .neq('status', 'skipped')
-    .order('created_at', { ascending: false })
-    .limit(10)
 
   const { data: recentDecisions } = await supabase
     .from('decisions')
@@ -60,23 +51,7 @@ export default async function DashboardPage() {
         {/* Today's Calendar */}
         <div className="rounded-xl border border-zinc-800 bg-zinc-900/50 p-6">
           <h2 className="text-xl font-semibold mb-4">Bugünün Takvimi</h2>
-          {todayEvents && todayEvents.length > 0 ? (
-            <div className="space-y-3">
-              {todayEvents.map((event) => (
-                <div key={event.id} className="flex flex-col rounded-lg border border-zinc-800 bg-zinc-900 p-3">
-                  <div className="flex justify-between items-start">
-                    <div>
-                      <span className="text-xs font-medium text-zinc-400">{event.start_time?.slice(0,5)} - {event.end_time?.slice(0,5)}</span>
-                      <h3 className="text-sm font-medium text-zinc-100 mt-1">{event.title}</h3>
-                      <p className="text-xs text-zinc-500 mt-1">{(event.projects as any)?.title}</p>
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
-          ) : (
-            <p className="text-sm text-zinc-500">Bugün için planlanmış iş yok.</p>
-          )}
+          <EventList events={todayEvents as any} />
         </div>
 
         {/* Late Tasks */}
@@ -95,16 +70,6 @@ export default async function DashboardPage() {
             <p className="text-sm text-zinc-500">Geciken işiniz bulunmuyor. Harika!</p>
           )}
         </div>
-      </div>
-
-      {/* Active Tasks */}
-      <div className="rounded-xl border border-zinc-800 bg-zinc-900/50 p-6">
-        <h2 className="text-xl font-semibold mb-4 text-zinc-100">Bana Atanan Açık Görevler</h2>
-        {dashboardTasks && dashboardTasks.length > 0 ? (
-          <TaskList tasks={dashboardTasks as any} />
-        ) : (
-          <p className="text-sm text-zinc-500">Şu an için beklemede olan aktif bir göreviniz yok.</p>
-        )}
       </div>
 
       {/* Projects */}
