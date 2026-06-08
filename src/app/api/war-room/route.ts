@@ -20,7 +20,6 @@ export async function POST(req: Request) {
     const { data: notes } = await supabase.from('project_notes').select('*').eq('project_id', projectId).order('created_at', { ascending: false }).limit(5)
 
     const systemContext = `
-const systemContext = `
 PROJE BAĞLAMI:
 Adı: ${project.title || 'Belirtilmemiş'}
 Hedef: ${project.goal || 'Belirtilmemiş'}
