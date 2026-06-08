@@ -47,12 +47,20 @@ export function EventList({ events }: { events: CalendarEvent[] }) {
               onClick={() => setExpandedId(isExpanded ? null : event.id)}
             >
               <div className="flex items-center gap-3">
-                <div onClick={(e) => e.stopPropagation()}>
-                  {isDone ? (
-                    <button onClick={() => handleStatus(event.id, 'scheduled')} disabled={loading === event.id} className="w-5 h-5 rounded-full bg-green-500 flex items-center justify-center text-black font-bold text-xs">✓</button>
-                  ) : (
-                    <button onClick={() => handleStatus(event.id, 'completed')} disabled={loading === event.id} className="w-5 h-5 rounded-full border border-zinc-600 hover:border-green-500 hover:bg-green-500/20"></button>
-                  )}
+                <div 
+                  className="p-2 -ml-2 cursor-pointer flex-shrink-0"
+                  onClick={(e) => {
+                    e.stopPropagation()
+                    handleStatus(event.id, isDone ? 'scheduled' : 'completed')
+                  }}
+                >
+                  <div className={`w-6 h-6 rounded-full flex items-center justify-center transition-colors ${
+                    isDone 
+                      ? 'bg-green-500 text-black font-bold text-sm' 
+                      : 'border-2 border-zinc-600 hover:border-green-500 hover:bg-green-500/20'
+                  }`}>
+                    {isDone ? '✓' : ''}
+                  </div>
                 </div>
                 <div>
                   <div className="flex items-center gap-2 mb-0.5">

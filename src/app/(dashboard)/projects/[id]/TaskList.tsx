@@ -62,12 +62,20 @@ export function TaskList({ tasks, projectId }: { tasks: Task[], projectId?: stri
               }}
             >
               <div className="flex items-center gap-3">
-                <div onClick={(e) => e.stopPropagation()}>
-                  {isDone ? (
-                    <button onClick={() => handleStatus(task.id, 'todo', activeProjectId)} disabled={loading === task.id} className="w-5 h-5 rounded-full bg-green-500 flex items-center justify-center text-black font-bold text-xs">✓</button>
-                  ) : (
-                    <button onClick={() => handleStatus(task.id, 'done', activeProjectId)} disabled={loading === task.id} className="w-5 h-5 rounded-full border border-zinc-600 hover:border-green-500 hover:bg-green-500/20"></button>
-                  )}
+                <div 
+                  className="p-2 -ml-2 cursor-pointer flex-shrink-0"
+                  onClick={(e) => {
+                    e.stopPropagation()
+                    handleStatus(task.id, isDone ? 'todo' : 'done', activeProjectId)
+                  }}
+                >
+                  <div className={`w-6 h-6 rounded-full flex items-center justify-center transition-colors ${
+                    isDone 
+                      ? 'bg-green-500 text-black font-bold text-sm' 
+                      : 'border-2 border-zinc-600 hover:border-green-500 hover:bg-green-500/20'
+                  }`}>
+                    {isDone ? '✓' : ''}
+                  </div>
                 </div>
                 <div>
                   <h3 className={`text-sm font-medium ${isDone ? 'text-zinc-500 line-through' : 'text-zinc-100'}`}>
