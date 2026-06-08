@@ -71,7 +71,7 @@ export default function WarRoomPage({ params }: { params: Promise<{ id: string }
 
     } catch (err: any) {
       setError(err.message)
-      setStatus('idle')
+      setStatus(prev => prev === 'discussing' ? 'idle' : prev)
     }
   }
 
@@ -154,7 +154,7 @@ export default function WarRoomPage({ params }: { params: Promise<{ id: string }
         </div>
       )}
 
-      {(status === 'judging' || status === 'complete') && discussion && (
+      {discussion && status !== 'discussing' && (
         <div className="space-y-8">
           <div className="rounded-xl border border-zinc-800 bg-zinc-900/50 p-6">
             <h2 className="text-xl font-bold mb-6 text-zinc-100 flex items-center justify-between">
@@ -178,7 +178,18 @@ export default function WarRoomPage({ params }: { params: Promise<{ id: string }
             </div>
           </div>
 
-          {error && <div className="p-4 rounded-md bg-red-950/50 text-red-400 border border-red-900 text-sm whitespace-pre-wrap">{error}</div>}
+          {error && (
+            <div className="p-6 rounded-xl bg-red-950/20 border border-red-900/50 space-y-4">
+              <div className="text-red-400 text-sm whitespace-pre-wrap font-bold">Hata Oluştu:</div>
+              <div className="text-red-400 text-sm whitespace-pre-wrap">{error}</div>
+              <button 
+                onClick={() => { setStatus('idle'); setDiscussion(null); setJudgeResult(null); setError(null); }}
+                className="rounded-md bg-red-900/50 px-6 py-2 text-sm font-medium text-red-200 hover:bg-red-900 transition-colors"
+              >
+                Yeni Soru Sor / Tekrar Dene
+              </button>
+            </div>
+          )}
 
           {status === 'complete' && judgeResult && (
             <div className="rounded-xl border border-amber-900/50 bg-zinc-900/50 p-6">
