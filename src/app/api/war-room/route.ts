@@ -69,38 +69,37 @@ ${notes?.map(n => `- ${n.content}`).join('\n') || 'Yok'}
 
     const userQuery = `Kullanıcı Sorusu: ${question}\nEk Bağlam: ${context || 'Yok'}`
 
-    if (action === 'discuss') {
-      // 2. Call Roles in parallel
-      const [vRes, sRes, oRes] = await Promise.all([
-        callOpenRouter(
-          'google/gemini-2.5-flash',
-          `Sen Vizyoner bir stratejistsin.\nGörev: Fırsatları bul, cesur ama mantıklı öneriler getir. Pazarlama, büyüme ve gelir potansiyeline odaklan. Sıradan cevap verme.\n${systemContext}`,
-          userQuery
-        ),
-        callOpenRouter(
-          'meta-llama/llama-3.3-70b-instruct',
-          `Sen Şüpheci ve sert bir eleştirmensin.\nGörev: Fikri öldürmeye çalış, riskleri bul. Kullanıcının kendini kandırdığı noktaları söyle. "Bu iş neden batabilir?" sorusuna cevap ver. Gerektiğinde çok sert ol.\n${systemContext}`,
-          userQuery
-        ),
-        callOpenRouter(
-          'openai/gpt-4o',
-          `Sen pragmatik bir Operasyoncusun.\nGörev: Gerçekçi uygulama planı çıkar. Bugün/bu hafta yapılabilecek adımlara indir. Gereksiz romantizm yapma.\n${systemContext}`,
-          userQuery
-        )
-      ])
+    if (action === 'visionary') {
+      const vRes = await callOpenRouter(
+        'google/gemini-2.5-flash',
+        `Sen Vizyoner bir stratejistsin.\nGörev: Fırsatları bul, cesur ama mantıklı öneriler getir. Pazarlama, büyüme ve gelir potansiyeline odaklan. Sıradan cevap verme.\n${systemContext}`,
+        userQuery
+      )
+      return NextResponse.json({ visionary: vRes })
+    }
 
-      return NextResponse.json({
-        visionary: vRes,
-        skeptic: sRes,
-        operator: oRes
-      })
+    if (action === 'skeptic') {
+      const sRes = await callOpenRouter(
+        'meta-llama/llama-3.3-70b-instruct',
+        `Sen Şüpheci ve acımasız bir eleştirmensin. Az önce Vizyoner aşağıdaki fikri sundu:\n\n--VİZYONERİN FİKRİ--\n${visionaryRes}\n---------------------\n\nGörev: Vizyoner'in fikrini okudun. Şimdi bu fikri çürüt, riskleri bul. Kullanıcının ve vizyonerin kendini kandırdığı noktaları yüzlerine vur. "Bu iş neden batabilir?" sorusuna cevap ver. Vizyoner'in yazdıklarına doğrudan atıfta bulunarak ("Vizyonerin dediği X hayal ürünü...") eleştir. Gerektiğinde çok sert ol.\n${systemContext}`,
+        userQuery
+      )
+      return NextResponse.json({ skeptic: sRes })
+    }
+
+    if (action === 'operator') {
+      const oRes = await callOpenRouter(
+        'openai/gpt-4o',
+        `Sen pragmatik bir Operasyoncusun. Az önce Vizyoner bir hayal kurdu, Şüpheci ise bu hayali eleştirdi:\n\n--VİZYONER--\n${visionaryRes}\n\n--ŞÜPHECİ--\n${skepticRes}\n---------------------\n\nGörev: Her ikisini de okudun. İkisini harmanla: "Vizyonerin şu fikri abartı ama Şüphecinin şu korkusunu şöyle aşarsak, bugün gerçekçi olarak şu adımları atabiliriz" de. Gerçekçi bir uygulama planı çıkar. Bugün/bu hafta yapılabilecek eylemlere indir. Gereksiz romantizm yapma.\n${systemContext}`,
+        userQuery
+      )
+      return NextResponse.json({ operator: oRes })
     }
 
     if (action === 'judge') {
-      // 3. Call Judge
       const judgePrompt = `
 Sen "AI Chief of Staff" sisteminin Baş Hakemi ve nihai karar vericisisin.
-Aşağıda bir proje hakkında Vizyoner, Şüpheci ve Operasyoncu'nun görüşlerini bulacaksın.
+Aşağıda bir proje hakkında Vizyoner, Şüpheci ve Operasyoncu'nun sırayla gerçekleştirdiği tartışmayı bulacaksın.
 
 ${systemContext}
 ${userQuery}
@@ -108,15 +107,15 @@ ${userQuery}
 VİZYONER:
 ${visionaryRes}
 
-ŞÜPHECİ:
+ŞÜPHECİ (Vizyoner'e cevap verdi):
 ${skepticRes}
 
-OPERASYONCU:
+OPERASYONCU (İkisini harmanladı):
 ${operatorRes}
 
 GÖREVİN:
 1. Önceki görüşleri değerlendir, önceki açık görevleri ve kararları kontrol et. Eğer kullanıcı geçmişte alınan kararları uygulamadan yeni şeyler istiyorsa, SADECE bunu yüzüne vur ve REDDET (doNotDo kısmına açıkla, finalDecision olarak da yeni iş uydurma, eski işleri yap de).
-2. Eğer geçerli bir istekse, NET BİR KARAR VER.
+2. Eğer geçerli bir istekse, NET BİR KARAR VER. Operasyoncu'nun planını temel alabilirsin.
 3. 3-7 uygulanabilir görev çıkar (tasks array). Eğer eski işler bitmediyse görev çıkarma, boş array gönder.
 4. Bu görevleri günlere yay (calendarPlan array - dateOffset 0 = bugün, 1 = yarın vb.).
 5. "Kesinlikle yapılmaması gerekenler" listesi çıkar (doNotDo).
