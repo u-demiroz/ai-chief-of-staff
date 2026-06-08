@@ -94,20 +94,17 @@ export function EventList({ events }: { events: CalendarEvent[] }) {
                   </div>
                 )}
 
-                <div className="flex flex-wrap items-center gap-2 pt-2">
-                  <span className="text-xs text-zinc-500 mr-2">İşlemler:</span>
-                  
-                  {event.status !== 'skipped' && event.status !== 'cancelled' && (
-                    <button onClick={() => handleStatus(event.id, 'cancelled')} disabled={loading === event.id} className="rounded border border-zinc-700 bg-zinc-800 px-2 py-1 text-xs text-zinc-300 hover:bg-zinc-700">
-                      ⏭ İptal Et / Atla
+                <div className="flex items-center gap-3 pt-4 border-t border-zinc-800/50">
+                  {!isDone && (
+                    <button onClick={() => handleStatus(event.id, 'completed')} disabled={loading === event.id} className="flex-1 rounded bg-green-600 px-4 py-2 text-sm font-bold text-white hover:bg-green-500 disabled:opacity-50">
+                      ✓ Tamamlandı İşaretle
                     </button>
                   )}
-                  <button onClick={() => handlePostpone(event.id, 1)} disabled={loading === event.id} className="rounded border border-amber-900/50 bg-amber-950/30 px-2 py-1 text-xs text-amber-400 hover:bg-amber-900/50">
-                    ⏱ Yarına Ertele
-                  </button>
-                  <button onClick={() => handlePostpone(event.id, 7)} disabled={loading === event.id} className="rounded border border-amber-900/50 bg-amber-950/30 px-2 py-1 text-xs text-amber-400 hover:bg-amber-900/50">
-                    ⏱ Haftaya Ertele
-                  </button>
+                  {event.status !== 'skipped' && event.status !== 'cancelled' && (
+                    <button onClick={() => handleStatus(event.id, 'cancelled')} disabled={loading === event.id} className="flex-1 rounded border border-zinc-700 bg-zinc-800 px-4 py-2 text-sm font-medium text-zinc-300 hover:bg-zinc-700 disabled:opacity-50">
+                      İptal Et
+                    </button>
+                  )}
                 </div>
               </div>
             )}
