@@ -67,7 +67,7 @@ YANIT FORMATI (SADECE JSON OLACAK, MARKDOWN YOK):
 Dikkat: projectId alanlarına yukarıdaki bağlamdan aldığın GERÇEK UUID'leri yazmalısın. Eğer yeni bir proje değilse, mutlaka doğru UUID eşleşmeli.
 `
 
-    const model = process.env.OPENROUTER_MODEL_DAILY_COO || 'openai/gpt-4o-mini'
+    const model = 'openai/gpt-4o-mini'
     const res = await fetch('https://openrouter.ai/api/v1/chat/completions', {
       method: 'POST',
       headers: {

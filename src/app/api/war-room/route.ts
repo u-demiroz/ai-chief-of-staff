@@ -37,8 +37,8 @@ Notlar:
 ${notes?.map(n => `- ${n.content}`).join('\n') || 'Yok'}
 `
 
-    const callOpenRouter = async (modelEnvKey: string, fallbackModel: string, systemPrompt: string, userPrompt: string) => {
-      const model = process.env[modelEnvKey] || fallbackModel
+    const callOpenRouter = async (modelName: string, systemPrompt: string, userPrompt: string) => {
+      const model = modelName
       const res = await fetch('https://openrouter.ai/api/v1/chat/completions', {
         method: 'POST',
         headers: {
@@ -73,19 +73,16 @@ ${notes?.map(n => `- ${n.content}`).join('\n') || 'Yok'}
       // 2. Call Roles in parallel
       const [vRes, sRes, oRes] = await Promise.all([
         callOpenRouter(
-          'OPENROUTER_MODEL_VISIONARY',
           'google/gemini-2.5-flash',
           `Sen Vizyoner bir stratejistsin.\nGörev: Fırsatları bul, cesur ama mantıklı öneriler getir. Pazarlama, büyüme ve gelir potansiyeline odaklan. Sıradan cevap verme.\n${systemContext}`,
           userQuery
         ),
         callOpenRouter(
-          'OPENROUTER_MODEL_SKEPTIC',
           'anthropic/claude-3.5-sonnet',
           `Sen Şüpheci ve sert bir eleştirmensin.\nGörev: Fikri öldürmeye çalış, riskleri bul. Kullanıcının kendini kandırdığı noktaları söyle. "Bu iş neden batabilir?" sorusuna cevap ver. Gerektiğinde çok sert ol.\n${systemContext}`,
           userQuery
         ),
         callOpenRouter(
-          'OPENROUTER_MODEL_OPERATOR',
           'openai/gpt-4o',
           `Sen pragmatik bir Operasyoncusun.\nGörev: Gerçekçi uygulama planı çıkar. Bugün/bu hafta yapılabilecek adımlara indir. Gereksiz romantizm yapma.\n${systemContext}`,
           userQuery
@@ -148,7 +145,6 @@ YANIT FORMATI (SADECE VE SADECE GEÇERLİ JSON OLACAK):
 `
 
       let judgeRes = await callOpenRouter(
-        'OPENROUTER_MODEL_JUDGE',
         'google/gemini-1.5-pro',
         'Sen JSON formatında yanıt veren bir hakemsin. Asla markdown (```json vb) kullanma.',
         judgePrompt
