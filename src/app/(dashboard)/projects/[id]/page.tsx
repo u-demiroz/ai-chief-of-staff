@@ -3,6 +3,7 @@ import Link from 'next/link'
 import { notFound } from 'next/navigation'
 import { format } from 'date-fns'
 import { tr } from 'date-fns/locale'
+import { TaskList } from './TaskList'
 
 export default async function ProjectDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params
@@ -66,17 +67,7 @@ export default async function ProjectDetailPage({ params }: { params: Promise<{ 
               <button className="text-sm font-medium text-zinc-400 hover:text-zinc-100">Görev Ekle</button>
             </div>
             {tasks && tasks.length > 0 ? (
-              <div className="space-y-3">
-                {tasks.map(task => (
-                  <div key={task.id} className="flex items-center justify-between rounded-lg border border-zinc-800 bg-zinc-950 p-3">
-                    <div>
-                      <h3 className="text-sm font-medium text-zinc-100">{task.title}</h3>
-                      <p className="text-xs text-zinc-500 mt-1">Durum: {task.status}</p>
-                    </div>
-                    <button className="text-xs font-medium text-zinc-400 hover:text-zinc-100">Tamamla</button>
-                  </div>
-                ))}
-              </div>
+              <TaskList tasks={tasks} projectId={id} />
             ) : (
               <p className="text-sm text-zinc-500">Bu projeye ait görev bulunmuyor.</p>
             )}

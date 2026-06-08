@@ -71,6 +71,7 @@ create table public.tasks (
   status text default 'todo', -- todo, in_progress, done, skipped, cancelled
   priority text default 'medium', -- low, medium, high, critical
   due_date timestamp with time zone,
+  notes text,
   source text default 'manual', -- manual, ai_generated, war_room_decision, daily_briefing, calendar_plan
   created_at timestamp with time zone default timezone('utc'::text, now()) not null,
   updated_at timestamp with time zone default timezone('utc'::text, now()) not null,
