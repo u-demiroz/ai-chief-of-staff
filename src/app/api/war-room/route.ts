@@ -20,12 +20,13 @@ export async function POST(req: Request) {
     const { data: notes } = await supabase.from('project_notes').select('*').eq('project_id', projectId).order('created_at', { ascending: false }).limit(5)
 
     const systemContext = `
+const systemContext = `
 PROJE BAĞLAMI:
-Adı: ${project.title}
-Hedef: ${project.goal}
-Mevcut Durum: ${project.current_status}
-Aşama: ${project.stage}
-Kategori: ${project.category}
+Adı: ${project.title || 'Belirtilmemiş'}
+Hedef: ${project.goal || 'Belirtilmemiş'}
+Mevcut Durum: ${project.current_status || 'Belirtilmemiş'}
+Aşama: ${project.stage || 'Belirtilmemiş'}
+Kategori: ${project.category || 'Belirtilmemiş'}
 
 Açık Görevler:
 ${tasks?.map(t => `- ${t.title} (${t.status})`).join('\n') || 'Yok'}
@@ -145,7 +146,7 @@ YANIT FORMATI (SADECE VE SADECE GEÇERLİ JSON OLACAK):
 `
 
       let judgeRes = await callOpenRouter(
-        'google/gemini-1.5-pro',
+        'openai/gpt-4o',
         'Sen JSON formatında yanıt veren bir hakemsin. Asla markdown (```json vb) kullanma.',
         judgePrompt
       )
