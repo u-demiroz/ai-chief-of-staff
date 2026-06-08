@@ -10,7 +10,8 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    const { projectId, question, context } = await req.json()
+    const body = await req.json()
+    const { projectId, question, context, action, visionaryRes, skepticRes, operatorRes } = body
 
     // 1. Fetch Project Memory
     const { data: project } = await supabase.from('projects').select('*').eq('id', projectId).single()
@@ -55,39 +56,52 @@ ${notes?.map(n => `- ${n.content}`).join('\n') || 'Yok'}
         })
       })
       if (!res.ok) {
-        console.error(`Failed to call OpenRouter for ${model}:`, await res.text())
-        return "Model yanıt veremedi."
+        const text = await res.text()
+        console.error(`Failed to call OpenRouter for ${model}:`, text)
+        throw new Error(`Model ${model} API Error: ${res.status} ${text}`)
       }
       const data = await res.json()
+      if (!data.choices || data.choices.length === 0) {
+        throw new Error(`Model ${model} boş yanıt döndürdü. API Key limitinizi kontrol edin.`)
+      }
       return data.choices[0].message.content
     }
 
     const userQuery = `Kullanıcı Sorusu: ${question}\nEk Bağlam: ${context || 'Yok'}`
 
-    // 2. Call Roles in parallel
-    const [visionaryRes, skepticRes, operatorRes] = await Promise.all([
-      callOpenRouter(
-        'OPENROUTER_MODEL_VISIONARY',
-        'google/gemini-2.5-flash',
-        `Sen Vizyoner bir stratejistsin.\nGörev: Fırsatları bul, cesur ama mantıklı öneriler getir. Pazarlama, büyüme ve gelir potansiyeline odaklan. Sıradan cevap verme.\n${systemContext}`,
-        userQuery
-      ),
-      callOpenRouter(
-        'OPENROUTER_MODEL_SKEPTIC',
-        'anthropic/claude-3-5-sonnet-20240620',
-        `Sen Şüpheci ve sert bir eleştirmensin.\nGörev: Fikri öldürmeye çalış, riskleri bul. Kullanıcının kendini kandırdığı noktaları söyle. "Bu iş neden batabilir?" sorusuna cevap ver. Gerektiğinde çok sert ol.\n${systemContext}`,
-        userQuery
-      ),
-      callOpenRouter(
-        'OPENROUTER_MODEL_OPERATOR',
-        'openai/gpt-4o',
-        `Sen pragmatik bir Operasyoncusun.\nGörev: Gerçekçi uygulama planı çıkar. Bugün/bu hafta yapılabilecek adımlara indir. Gereksiz romantizm yapma.\n${systemContext}`,
-        userQuery
-      )
-    ])
+    if (action === 'discuss') {
+      // 2. Call Roles in parallel
+      const [vRes, sRes, oRes] = await Promise.all([
+        callOpenRouter(
+          'OPENROUTER_MODEL_VISIONARY',
+          'google/gemini-2.5-flash',
+          `Sen Vizyoner bir stratejistsin.\nGörev: Fırsatları bul, cesur ama mantıklı öneriler getir. Pazarlama, büyüme ve gelir potansiyeline odaklan. Sıradan cevap verme.\n${systemContext}`,
+          userQuery
+        ),
+        callOpenRouter(
+          'OPENROUTER_MODEL_SKEPTIC',
+          'anthropic/claude-3.5-sonnet',
+          `Sen Şüpheci ve sert bir eleştirmensin.\nGörev: Fikri öldürmeye çalış, riskleri bul. Kullanıcının kendini kandırdığı noktaları söyle. "Bu iş neden batabilir?" sorusuna cevap ver. Gerektiğinde çok sert ol.\n${systemContext}`,
+          userQuery
+        ),
+        callOpenRouter(
+          'OPENROUTER_MODEL_OPERATOR',
+          'openai/gpt-4o',
+          `Sen pragmatik bir Operasyoncusun.\nGörev: Gerçekçi uygulama planı çıkar. Bugün/bu hafta yapılabilecek adımlara indir. Gereksiz romantizm yapma.\n${systemContext}`,
+          userQuery
+        )
+      ])
 
-    // 3. Call Judge
-    const judgePrompt = `
+      return NextResponse.json({
+        visionary: vRes,
+        skeptic: sRes,
+        operator: oRes
+      })
+    }
+
+    if (action === 'judge') {
+      // 3. Call Judge
+      const judgePrompt = `
 Sen "AI Chief of Staff" sisteminin Baş Hakemi ve nihai karar vericisisin.
 Aşağıda bir proje hakkında Vizyoner, Şüpheci ve Operasyoncu'nun görüşlerini bulacaksın.
 
@@ -133,34 +147,34 @@ YANIT FORMATI (SADECE VE SADECE GEÇERLİ JSON OLACAK):
 }
 `
 
-    let judgeRes = await callOpenRouter(
-      'OPENROUTER_MODEL_JUDGE',
-      'google/gemini-1.5-pro',
-      'Sen JSON formatında yanıt veren bir hakemsin. Asla markdown (```json vb) kullanma.',
-      judgePrompt
-    )
+      let judgeRes = await callOpenRouter(
+        'OPENROUTER_MODEL_JUDGE',
+        'google/gemini-1.5-pro',
+        'Sen JSON formatında yanıt veren bir hakemsin. Asla markdown (```json vb) kullanma.',
+        judgePrompt
+      )
 
-    if (judgeRes.startsWith('```json')) {
-      judgeRes = judgeRes.replace(/^```json\n?/, '').replace(/\n?```$/, '')
+      if (judgeRes.startsWith('```json')) {
+        judgeRes = judgeRes.replace(/^```json\n?/, '').replace(/\n?```$/, '')
+      }
+
+      let parsedJudge
+      try {
+        parsedJudge = JSON.parse(judgeRes)
+      } catch (e) {
+        console.error("Failed to parse Judge JSON:", judgeRes)
+        throw new Error('AI geçerli bir JSON üretemedi. Çıktı: ' + judgeRes)
+      }
+
+      return NextResponse.json({
+        judge: parsedJudge
+      })
     }
 
-    let parsedJudge
-    try {
-      parsedJudge = JSON.parse(judgeRes)
-    } catch (e) {
-      console.error("Failed to parse Judge JSON:", judgeRes)
-      return NextResponse.json({ error: 'AI geçerli bir JSON üretemedi.' }, { status: 500 })
-    }
+    return NextResponse.json({ error: 'Invalid action' }, { status: 400 })
 
-    return NextResponse.json({
-      visionary: visionaryRes,
-      skeptic: skepticRes,
-      operator: operatorRes,
-      judge: parsedJudge
-    })
-
-  } catch (error) {
-    console.error(error)
-    return NextResponse.json({ error: 'Sunucu hatası' }, { status: 500 })
+  } catch (error: any) {
+    console.error("War Room Error:", error)
+    return NextResponse.json({ error: error.message || 'Sunucu hatası' }, { status: 500 })
   }
 }
