@@ -78,7 +78,7 @@ ${notes?.map(n => `- ${n.content}`).join('\n') || 'Yok'}
           userQuery
         ),
         callOpenRouter(
-          'anthropic/claude-3.5-sonnet',
+          'meta-llama/llama-3.3-70b-instruct',
           `Sen Şüpheci ve sert bir eleştirmensin.\nGörev: Fikri öldürmeye çalış, riskleri bul. Kullanıcının kendini kandırdığı noktaları söyle. "Bu iş neden batabilir?" sorusuna cevap ver. Gerektiğinde çok sert ol.\n${systemContext}`,
           userQuery
         ),
