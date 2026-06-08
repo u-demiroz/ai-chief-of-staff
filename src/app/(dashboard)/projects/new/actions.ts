@@ -6,7 +6,11 @@ import { redirect } from 'next/navigation'
 export async function createProject(formData: FormData) {
   const supabase = await createClient()
 
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) throw new Error('Unauthorized')
+
   const data = {
+    user_id: user.id,
     title: formData.get('title') as string,
     description: formData.get('description') as string,
     goal: formData.get('goal') as string,
