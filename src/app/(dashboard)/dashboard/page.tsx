@@ -3,6 +3,8 @@ import { format } from 'date-fns'
 import { tr } from 'date-fns/locale'
 import Link from 'next/link'
 import { EventList } from './EventList'
+import { HealthUpdateButton } from './HealthUpdateButton'
+import { LessonsLearnedList } from './LessonsLearnedList'
 
 export default async function DashboardPage() {
   const supabase = await createClient()
@@ -35,6 +37,12 @@ export default async function DashboardPage() {
     .eq('status', 'waiting')
     .order('updated_at', { ascending: false })
 
+  const { data: pendingDecisions } = await supabase
+    .from('decisions')
+    .select('*, projects(title)')
+    .eq('status', 'accepted')
+    .order('created_at', { ascending: true })
+
   const { data: recentDecisions } = await supabase
     .from('decisions')
     .select('*, projects(title)')
@@ -46,11 +54,14 @@ export default async function DashboardPage() {
       <div className="flex items-center justify-between">
         <h1 className="text-3xl font-bold tracking-tight">Dashboard</h1>
         <div className="flex gap-3">
-          <Link href="/projects/new" className="rounded-md bg-zinc-100 px-4 py-2 text-sm font-medium text-zinc-900 hover:bg-zinc-200 transition-colors">
-            Yeni Proje Ekle
+          <Link href="/weekly-board" className="rounded-md border border-zinc-700 bg-zinc-800 px-4 py-2 text-sm font-bold text-zinc-100 hover:bg-zinc-700 transition-colors">
+            Haftalık Yönetim Kurulu
           </Link>
           <Link href="/daily-briefing" className="rounded-md border border-zinc-700 px-4 py-2 text-sm font-medium text-zinc-300 hover:bg-zinc-800 transition-colors">
             Daily COO Çalıştır
+          </Link>
+          <Link href="/projects/new" className="rounded-md bg-zinc-100 px-4 py-2 text-sm font-medium text-zinc-900 hover:bg-zinc-200 transition-colors">
+            Yeni Proje
           </Link>
         </div>
       </div>
@@ -80,30 +91,52 @@ export default async function DashboardPage() {
         </div>
       </div>
 
-      {/* Waiting Tasks */}
-      <div className="rounded-xl border border-zinc-800 bg-zinc-900/50 p-6">
-        <h2 className="text-xl font-semibold mb-4 text-purple-400">Takip Edilen (Bekleyen) İşler</h2>
-        {waitingEvents && waitingEvents.length > 0 ? (
-          <EventList events={waitingEvents as any} />
-        ) : (
-          <p className="text-sm text-zinc-500">Şu an başkasından haber veya sonuç beklediğiniz bir iş yok.</p>
-        )}
+      {/* Waiting Tasks & Lessons Learned */}
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+        <div className="rounded-xl border border-zinc-800 bg-zinc-900/50 p-6">
+          <h2 className="text-xl font-semibold mb-4 text-purple-400">Takip Edilen (Bekleyen) İşler</h2>
+          {waitingEvents && waitingEvents.length > 0 ? (
+            <EventList events={waitingEvents as any} />
+          ) : (
+            <p className="text-sm text-zinc-500">Şu an başkasından haber veya sonuç beklediğiniz bir iş yok.</p>
+          )}
+        </div>
+
+        <div className="rounded-xl border border-zinc-800 bg-zinc-900/50 p-6">
+          <h2 className="text-xl font-semibold mb-4 text-blue-400">Sonuç Bekleyen Kararlar (Hafıza)</h2>
+          {pendingDecisions && pendingDecisions.length > 0 ? (
+            <LessonsLearnedList decisions={pendingDecisions as any} />
+          ) : (
+            <p className="text-sm text-zinc-500">Uygulanıp sonucu beklenen bir karar yok.</p>
+          )}
+        </div>
       </div>
 
       {/* Projects */}
       <div>
-        <h2 className="text-xl font-semibold mb-4">Aktif Projeler</h2>
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="text-xl font-semibold">Aktif Projeler & Sağlık Durumu</h2>
+          <HealthUpdateButton />
+        </div>
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {projects && projects.length > 0 ? (
             projects.map((project) => (
               <Link key={project.id} href={`/projects/${project.id}`} className="group block rounded-xl border border-zinc-800 bg-zinc-900/50 p-5 hover:bg-zinc-800 transition-colors">
                 <div className="flex justify-between items-start mb-2">
                   <h3 className="font-semibold text-zinc-100 group-hover:text-white">{project.title}</h3>
-                  <span className="inline-flex items-center rounded-full bg-zinc-800 px-2 py-1 text-xs font-medium text-zinc-300">
-                    {project.stage || 'Belirsiz'}
+                  <span className={`inline-flex items-center rounded-full px-2 py-1 text-xs font-medium ${
+                    project.health_score > 80 ? 'bg-green-900/50 text-green-300' :
+                    project.health_score > 50 ? 'bg-amber-900/50 text-amber-300' :
+                    'bg-red-900/50 text-red-300'
+                  }`}>
+                    Sağlık: {project.health_score ?? 100}/100
                   </span>
                 </div>
-                <p className="text-sm text-zinc-400 line-clamp-2">{project.description}</p>
+                {project.health_reason ? (
+                  <p className="text-sm text-zinc-400 line-clamp-2 italic">{project.health_reason}</p>
+                ) : (
+                  <p className="text-sm text-zinc-400 line-clamp-2">{project.description}</p>
+                )}
                 <div className="mt-4 flex items-center justify-between text-xs text-zinc-500">
                   <span>Öncelik: {project.priority_score}</span>
                   <span>{project.category}</span>

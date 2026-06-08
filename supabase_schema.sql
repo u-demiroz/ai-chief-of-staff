@@ -49,6 +49,8 @@ create table public.projects (
   effort_level integer default 0,
   risk_level integer default 0,
   stage text,
+  health_score integer default 100,
+  health_reason text,
   created_at timestamp with time zone default timezone('utc'::text, now()) not null,
   updated_at timestamp with time zone default timezone('utc'::text, now()) not null
 );
@@ -103,6 +105,8 @@ create table public.decisions (
   calendar_plan_json jsonb,
   do_not_do_json jsonb,
   status text default 'pending', -- pending, accepted, rejected, implemented, ignored
+  outcome text,
+  implemented_at timestamp with time zone,
   created_at timestamp with time zone default timezone('utc'::text, now()) not null,
   updated_at timestamp with time zone default timezone('utc'::text, now()) not null
 );
