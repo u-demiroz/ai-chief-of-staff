@@ -19,6 +19,7 @@ export async function updateTaskStatus(taskId: string, status: string, projectId
   if (error) throw new Error(error.message)
   
   revalidatePath(`/projects/${projectId}`)
+  revalidatePath(`/dashboard`)
 }
 
 export async function postponeTask(taskId: string, days: number, projectId: string) {
@@ -39,6 +40,7 @@ export async function postponeTask(taskId: string, days: number, projectId: stri
   if (error) throw new Error(error.message)
   
   revalidatePath(`/projects/${projectId}`)
+  revalidatePath(`/dashboard`)
 }
 
 export async function updateTaskNotes(taskId: string, notes: string, projectId: string) {
@@ -49,4 +51,5 @@ export async function updateTaskNotes(taskId: string, notes: string, projectId: 
   if (error) throw new Error(error.message)
   
   revalidatePath(`/projects/${projectId}`)
+  revalidatePath(`/dashboard`)
 }

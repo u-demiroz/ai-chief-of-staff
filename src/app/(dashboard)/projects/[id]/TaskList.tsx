@@ -10,9 +10,11 @@ type Task = {
   status: string
   due_date?: string
   notes?: string
+  project_id: string
+  projects?: { title: string }
 }
 
-export function TaskList({ tasks, projectId }: { tasks: Task[], projectId: string }) {
+export function TaskList({ tasks, projectId }: { tasks: Task[], projectId?: string }) {
   const [expandedId, setExpandedId] = useState<string | null>(null)
   const [noteInput, setNoteInput] = useState<{ [key: string]: string }>({})
   const [loading, setLoading] = useState<string | null>(null)
@@ -21,21 +23,21 @@ export function TaskList({ tasks, projectId }: { tasks: Task[], projectId: strin
     return <p className="text-sm text-zinc-500">Bu projeye ait görev bulunmuyor.</p>
   }
 
-  const handleStatus = async (taskId: string, status: string) => {
+  const handleStatus = async (taskId: string, status: string, pId: string) => {
     setLoading(taskId)
-    await updateTaskStatus(taskId, status, projectId)
+    await updateTaskStatus(taskId, status, pId)
     setLoading(null)
   }
 
-  const handlePostpone = async (taskId: string, days: number) => {
+  const handlePostpone = async (taskId: string, days: number, pId: string) => {
     setLoading(taskId)
-    await postponeTask(taskId, days, projectId)
+    await postponeTask(taskId, days, pId)
     setLoading(null)
   }
 
-  const handleSaveNote = async (taskId: string) => {
+  const handleSaveNote = async (taskId: string, pId: string) => {
     setLoading(taskId)
-    await updateTaskNotes(taskId, noteInput[taskId] || '', projectId)
+    await updateTaskNotes(taskId, noteInput[taskId] || '', pId)
     setLoading(null)
   }
 
@@ -44,6 +46,7 @@ export function TaskList({ tasks, projectId }: { tasks: Task[], projectId: strin
       {tasks.map(task => {
         const isExpanded = expandedId === task.id
         const isDone = task.status === 'done'
+        const activeProjectId = projectId || task.project_id
         
         return (
           <div key={task.id} className={`rounded-lg border ${isDone ? 'border-green-900/30 bg-green-950/10' : 'border-zinc-800 bg-zinc-950'} overflow-hidden transition-all`}>
@@ -61,9 +64,9 @@ export function TaskList({ tasks, projectId }: { tasks: Task[], projectId: strin
               <div className="flex items-center gap-3">
                 <div onClick={(e) => e.stopPropagation()}>
                   {isDone ? (
-                    <button onClick={() => handleStatus(task.id, 'todo')} disabled={loading === task.id} className="w-5 h-5 rounded-full bg-green-500 flex items-center justify-center text-black font-bold text-xs">✓</button>
+                    <button onClick={() => handleStatus(task.id, 'todo', activeProjectId)} disabled={loading === task.id} className="w-5 h-5 rounded-full bg-green-500 flex items-center justify-center text-black font-bold text-xs">✓</button>
                   ) : (
-                    <button onClick={() => handleStatus(task.id, 'done')} disabled={loading === task.id} className="w-5 h-5 rounded-full border border-zinc-600 hover:border-green-500 hover:bg-green-500/20"></button>
+                    <button onClick={() => handleStatus(task.id, 'done', activeProjectId)} disabled={loading === task.id} className="w-5 h-5 rounded-full border border-zinc-600 hover:border-green-500 hover:bg-green-500/20"></button>
                   )}
                 </div>
                 <div>
@@ -79,6 +82,11 @@ export function TaskList({ tasks, projectId }: { tasks: Task[], projectId: strin
                     }`}>
                       {task.status.replace('_', ' ')}
                     </span>
+                    {!projectId && task.projects?.title && (
+                      <span className="text-[10px] text-zinc-400 px-1.5 py-0.5 rounded bg-zinc-800/50">
+                        {task.projects.title}
+                      </span>
+                    )}
                     {task.due_date && (
                       <span className="text-[10px] text-zinc-500">📅 {new Date(task.due_date).toLocaleDateString('tr-TR')}</span>
                     )}
@@ -112,7 +120,7 @@ export function TaskList({ tasks, projectId }: { tasks: Task[], projectId: strin
                   />
                   <div className="flex justify-end mt-2">
                     <button 
-                      onClick={() => handleSaveNote(task.id)}
+                      onClick={() => handleSaveNote(task.id, activeProjectId)}
                       disabled={loading === task.id || noteInput[task.id] === task.notes}
                       className="rounded bg-zinc-100 px-3 py-1.5 text-xs font-medium text-zinc-900 hover:bg-zinc-200 disabled:opacity-50"
                     >
@@ -125,19 +133,19 @@ export function TaskList({ tasks, projectId }: { tasks: Task[], projectId: strin
                   <span className="text-xs text-zinc-500 mr-2">Hızlı İşlemler:</span>
                   
                   {task.status !== 'in_progress' && (
-                    <button onClick={() => handleStatus(task.id, 'in_progress')} disabled={loading === task.id} className="rounded border border-blue-900/50 bg-blue-950/30 px-2 py-1 text-xs text-blue-400 hover:bg-blue-900/50">
+                    <button onClick={() => handleStatus(task.id, 'in_progress', activeProjectId)} disabled={loading === task.id} className="rounded border border-blue-900/50 bg-blue-950/30 px-2 py-1 text-xs text-blue-400 hover:bg-blue-900/50">
                       ▶ Devam Ediyor Yap
                     </button>
                   )}
                   {task.status !== 'skipped' && (
-                    <button onClick={() => handleStatus(task.id, 'skipped')} disabled={loading === task.id} className="rounded border border-zinc-700 bg-zinc-800 px-2 py-1 text-xs text-zinc-300 hover:bg-zinc-700">
+                    <button onClick={() => handleStatus(task.id, 'skipped', activeProjectId)} disabled={loading === task.id} className="rounded border border-zinc-700 bg-zinc-800 px-2 py-1 text-xs text-zinc-300 hover:bg-zinc-700">
                       ⏭ İptal Et / Atla
                     </button>
                   )}
-                  <button onClick={() => handlePostpone(task.id, 1)} disabled={loading === task.id} className="rounded border border-amber-900/50 bg-amber-950/30 px-2 py-1 text-xs text-amber-400 hover:bg-amber-900/50">
+                  <button onClick={() => handlePostpone(task.id, 1, activeProjectId)} disabled={loading === task.id} className="rounded border border-amber-900/50 bg-amber-950/30 px-2 py-1 text-xs text-amber-400 hover:bg-amber-900/50">
                     ⏱ 1 Gün Ertele
                   </button>
-                  <button onClick={() => handlePostpone(task.id, 7)} disabled={loading === task.id} className="rounded border border-amber-900/50 bg-amber-950/30 px-2 py-1 text-xs text-amber-400 hover:bg-amber-900/50">
+                  <button onClick={() => handlePostpone(task.id, 7, activeProjectId)} disabled={loading === task.id} className="rounded border border-amber-900/50 bg-amber-950/30 px-2 py-1 text-xs text-amber-400 hover:bg-amber-900/50">
                     ⏱ 1 Hafta Ertele
                   </button>
                 </div>
