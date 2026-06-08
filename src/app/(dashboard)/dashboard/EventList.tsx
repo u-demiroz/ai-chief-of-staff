@@ -94,17 +94,31 @@ export function EventList({ events }: { events: CalendarEvent[] }) {
                   </div>
                 )}
 
-                <div className="flex items-center gap-3 pt-4 border-t border-zinc-800/50">
+                <div className="flex flex-col gap-2 pt-4 border-t border-zinc-800/50">
                   {!isDone && (
-                    <button onClick={() => handleStatus(event.id, 'completed')} disabled={loading === event.id} className="flex-1 rounded bg-green-600 px-4 py-2 text-sm font-bold text-white hover:bg-green-500 disabled:opacity-50">
+                    <button onClick={() => handleStatus(event.id, 'completed')} disabled={loading === event.id} className="w-full rounded bg-green-600 px-4 py-2 text-sm font-bold text-white hover:bg-green-500 disabled:opacity-50">
                       ✓ Tamamlandı İşaretle
                     </button>
                   )}
-                  {event.status !== 'skipped' && event.status !== 'cancelled' && (
-                    <button onClick={() => handleStatus(event.id, 'cancelled')} disabled={loading === event.id} className="flex-1 rounded border border-zinc-700 bg-zinc-800 px-4 py-2 text-sm font-medium text-zinc-300 hover:bg-zinc-700 disabled:opacity-50">
-                      İptal Et
+                  
+                  <div className="flex items-center gap-3">
+                    <button onClick={() => handlePostpone(event.id, 1)} disabled={loading === event.id} className="flex-1 rounded border border-amber-900/50 bg-amber-950/30 px-4 py-2 text-sm font-medium text-amber-400 hover:bg-amber-900/50 disabled:opacity-50">
+                      ⏱ Yarına Ertele
                     </button>
-                  )}
+                    {event.status !== 'skipped' && event.status !== 'cancelled' && (
+                      <button 
+                        onClick={() => {
+                          if(window.confirm('DİKKAT: Bu görev tamamen silinecek ve bir daha karşınıza çıkmayacak. Emin misiniz?')) {
+                            handleStatus(event.id, 'cancelled')
+                          }
+                        }} 
+                        disabled={loading === event.id} 
+                        className="flex-1 rounded border border-zinc-700 bg-zinc-800 px-4 py-2 text-sm font-medium text-zinc-300 hover:bg-zinc-700 hover:text-red-400 disabled:opacity-50"
+                      >
+                        İptal Et
+                      </button>
+                    )}
+                  </div>
                 </div>
               </div>
             )}
