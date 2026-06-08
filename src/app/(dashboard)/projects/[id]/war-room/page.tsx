@@ -40,7 +40,7 @@ export default function WarRoomPage({ params }: { params: Promise<{ id: string }
         body: JSON.stringify({ projectId: id, question, context, action: 'visionary' })
       })
       const vData = await vRes.json()
-      if (!vRes.ok) throw new Error(vData.error || 'Vizyoner aşamasında hata')
+      if (!vRes.ok) throw new Error(typeof vData.error === 'string' ? vData.error : JSON.stringify(vData.error || vData))
       setDiscussion(prev => ({ ...prev, visionary: vData.visionary }))
 
       // 2. Skeptic
@@ -51,7 +51,7 @@ export default function WarRoomPage({ params }: { params: Promise<{ id: string }
         body: JSON.stringify({ projectId: id, question, context, action: 'skeptic', visionaryRes: vData.visionary })
       })
       const sData = await sRes.json()
-      if (!sRes.ok) throw new Error(sData.error || 'Şüpheci aşamasında hata')
+      if (!sRes.ok) throw new Error(typeof sData.error === 'string' ? sData.error : JSON.stringify(sData.error || sData))
       setDiscussion(prev => ({ ...prev, skeptic: sData.skeptic }))
 
       // 3. Operator
@@ -62,7 +62,7 @@ export default function WarRoomPage({ params }: { params: Promise<{ id: string }
         body: JSON.stringify({ projectId: id, question, context, action: 'operator', visionaryRes: vData.visionary, skepticRes: sData.skeptic })
       })
       const oData = await oRes.json()
-      if (!oRes.ok) throw new Error(oData.error || 'Operasyoncu aşamasında hata')
+      if (!oRes.ok) throw new Error(typeof oData.error === 'string' ? oData.error : JSON.stringify(oData.error || oData))
       setDiscussion(prev => ({ ...prev, operator: oData.operator }))
 
       // 4. Judge
@@ -81,13 +81,13 @@ export default function WarRoomPage({ params }: { params: Promise<{ id: string }
         })
       })
       const jData = await jRes.json()
-      if (!jRes.ok) throw new Error(jData.error || 'Hakem karar aşamasında hata')
+      if (!jRes.ok) throw new Error(typeof jData.error === 'string' ? jData.error : JSON.stringify(jData.error || jData))
 
       setJudgeResult(jData.judge)
       setStatus('complete')
 
     } catch (err: any) {
-      setError(err.message)
+      setError(typeof err.message === 'string' ? err.message : JSON.stringify(err.message || err))
       // Stop progressing but keep UI visible
       setStatus(prev => prev === 'idle' ? 'idle' : prev)
     }
