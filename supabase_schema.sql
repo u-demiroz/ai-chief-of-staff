@@ -145,7 +145,8 @@ create table public.calendar_events (
   event_date date not null,
   start_time time without time zone,
   end_time time without time zone,
-  status text default 'scheduled', -- scheduled, completed, skipped, rescheduled, cancelled
+  status text default 'scheduled', -- scheduled, completed, skipped, rescheduled, cancelled, waiting
+  notes text,
   source text default 'manual', -- manual, ai_daily_plan, war_room_plan, task_schedule
   created_at timestamp with time zone default timezone('utc'::text, now()) not null,
   updated_at timestamp with time zone default timezone('utc'::text, now()) not null

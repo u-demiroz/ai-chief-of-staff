@@ -25,7 +25,15 @@ export default async function DashboardPage() {
     .lt('event_date', todayStr)
     .neq('status', 'completed')
     .neq('status', 'cancelled')
+    .neq('status', 'waiting')
     .order('event_date', { ascending: true })
+
+  // Fetch waiting (tracked) events
+  const { data: waitingEvents } = await supabase
+    .from('calendar_events')
+    .select('*, projects(title)')
+    .eq('status', 'waiting')
+    .order('updated_at', { ascending: false })
 
   const { data: recentDecisions } = await supabase
     .from('decisions')
@@ -70,6 +78,16 @@ export default async function DashboardPage() {
             <p className="text-sm text-zinc-500">Geciken işiniz bulunmuyor. Harika!</p>
           )}
         </div>
+      </div>
+
+      {/* Waiting Tasks */}
+      <div className="rounded-xl border border-zinc-800 bg-zinc-900/50 p-6">
+        <h2 className="text-xl font-semibold mb-4 text-purple-400">Takip Edilen (Bekleyen) İşler</h2>
+        {waitingEvents && waitingEvents.length > 0 ? (
+          <EventList events={waitingEvents as any} />
+        ) : (
+          <p className="text-sm text-zinc-500">Şu an başkasından haber veya sonuç beklediğiniz bir iş yok.</p>
+        )}
       </div>
 
       {/* Projects */}

@@ -33,3 +33,12 @@ export async function postponeEvent(eventId: string, days: number) {
   
   revalidatePath(`/dashboard`)
 }
+
+export async function updateEventNotes(eventId: string, notes: string) {
+  const supabase = await createClient()
+  
+  const { error } = await supabase.from('calendar_events').update({ notes }).eq('id', eventId)
+  if (error) throw new Error(error.message)
+  
+  revalidatePath(`/dashboard`)
+}

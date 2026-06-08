@@ -10,11 +10,13 @@ type CalendarEvent = {
   start_time?: string
   end_time?: string
   status: string
+  notes?: string
   projects?: { title: string }
 }
 
 export function EventList({ events }: { events: CalendarEvent[] }) {
   const [expandedId, setExpandedId] = useState<string | null>(null)
+  const [noteInput, setNoteInput] = useState<{ [key: string]: string }>({})
   const [loading, setLoading] = useState<string | null>(null)
 
   if (!events || events.length === 0) {
@@ -33,6 +35,13 @@ export function EventList({ events }: { events: CalendarEvent[] }) {
     setLoading(null)
   }
 
+  const handleSaveNote = async (eventId: string) => {
+    setLoading(eventId)
+    const { updateEventNotes } = await import('./eventActions')
+    await updateEventNotes(eventId, noteInput[eventId] || '')
+    setLoading(null)
+  }
+
   return (
     <div className="space-y-3">
       {events.map(event => {
@@ -44,7 +53,12 @@ export function EventList({ events }: { events: CalendarEvent[] }) {
             
             <div 
               className="flex items-center justify-between p-3 cursor-pointer hover:bg-zinc-900/50"
-              onClick={() => setExpandedId(isExpanded ? null : event.id)}
+              onClick={() => {
+                setExpandedId(isExpanded ? null : event.id)
+                if (!isExpanded && noteInput[event.id] === undefined) {
+                  setNoteInput(prev => ({ ...prev, [event.id]: event.notes || '' }))
+                }
+              }}
             >
               <div className="flex items-center gap-3">
                 <div 
@@ -72,6 +86,14 @@ export function EventList({ events }: { events: CalendarEvent[] }) {
                     {event.title}
                   </h3>
                   <div className="flex items-center gap-2 mt-1">
+                    <span className={`text-[10px] uppercase font-bold tracking-wider px-1.5 py-0.5 rounded ${
+                      event.status === 'scheduled' ? 'bg-zinc-800 text-zinc-400' :
+                      event.status === 'waiting' ? 'bg-purple-900/50 text-purple-400' :
+                      event.status === 'completed' ? 'bg-green-900/50 text-green-400' :
+                      'bg-red-900/50 text-red-400'
+                    }`}>
+                      {event.status === 'scheduled' ? 'PLANLI' : event.status === 'waiting' ? 'BEKLEMEDE' : event.status === 'completed' ? 'TAMAMLANDI' : 'İPTAL'}
+                    </span>
                     {event.projects?.title && (
                       <span className="text-[10px] text-zinc-400 px-1.5 py-0.5 rounded bg-zinc-800/50">
                         {event.projects.title}
@@ -94,6 +116,26 @@ export function EventList({ events }: { events: CalendarEvent[] }) {
                   </div>
                 )}
 
+                <div>
+                  <h4 className="text-xs font-semibold text-zinc-500 mb-1">Gelişmeler / Notlar</h4>
+                  <textarea 
+                    rows={3}
+                    value={noteInput[event.id] ?? (event.notes || '')}
+                    onChange={(e) => setNoteInput(prev => ({ ...prev, [event.id]: e.target.value }))}
+                    placeholder="Bu görevle ilgili notlarınızı buraya girebilirsiniz..."
+                    className="w-full rounded-md border border-zinc-700 bg-zinc-900 px-3 py-2 text-sm text-zinc-200 focus:border-zinc-500 focus:outline-none"
+                  />
+                  <div className="flex justify-end mt-2">
+                    <button 
+                      onClick={() => handleSaveNote(event.id)}
+                      disabled={loading === event.id || noteInput[event.id] === event.notes}
+                      className="rounded bg-zinc-100 px-3 py-1.5 text-xs font-medium text-zinc-900 hover:bg-zinc-200 disabled:opacity-50"
+                    >
+                      {loading === event.id ? 'Kaydediliyor...' : 'Notu Kaydet'}
+                    </button>
+                  </div>
+                </div>
+
                 <div className="flex flex-col gap-2 pt-4 border-t border-zinc-800/50">
                   {!isDone && (
                     <button onClick={() => handleStatus(event.id, 'completed')} disabled={loading === event.id} className="w-full rounded bg-green-600 px-4 py-2 text-sm font-bold text-white hover:bg-green-500 disabled:opacity-50">
@@ -102,6 +144,11 @@ export function EventList({ events }: { events: CalendarEvent[] }) {
                   )}
                   
                   <div className="flex items-center gap-3">
+                    {event.status !== 'waiting' && (
+                      <button onClick={() => handleStatus(event.id, 'waiting')} disabled={loading === event.id} className="flex-1 rounded border border-purple-900/50 bg-purple-950/30 px-4 py-2 text-sm font-medium text-purple-400 hover:bg-purple-900/50 disabled:opacity-50">
+                        ⏳ Beklemeye Al / Takip Et
+                      </button>
+                    )}
                     <button onClick={() => handlePostpone(event.id, 1)} disabled={loading === event.id} className="flex-1 rounded border border-amber-900/50 bg-amber-950/30 px-4 py-2 text-sm font-medium text-amber-400 hover:bg-amber-900/50 disabled:opacity-50">
                       ⏱ Yarına Ertele
                     </button>
