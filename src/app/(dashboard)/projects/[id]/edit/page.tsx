@@ -1,7 +1,8 @@
-import { updateProject } from './actions'
+import { updateProject, deleteProject } from './actions'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/server'
 import { notFound } from 'next/navigation'
+import { DeleteProjectButton } from './DeleteProjectButton'
 
 export default async function EditProjectPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params
@@ -15,6 +16,7 @@ export default async function EditProjectPage({ params }: { params: Promise<{ id
 
   // We need to pass the ID to the action
   const updateAction = updateProject.bind(null, id)
+  const deleteAction = deleteProject.bind(null, id)
 
   return (
     <div className="max-w-2xl mx-auto space-y-8">
@@ -80,6 +82,12 @@ export default async function EditProjectPage({ params }: { params: Promise<{ id
           Değişiklikleri Kaydet
         </button>
       </form>
+
+      <div className="pt-8 border-t border-zinc-800">
+        <form action={deleteAction}>
+          <DeleteProjectButton />
+        </form>
+      </div>
     </div>
   )
 }

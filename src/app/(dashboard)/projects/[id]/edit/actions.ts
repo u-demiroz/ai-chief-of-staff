@@ -35,3 +35,22 @@ export async function updateProject(projectId: string, formData: FormData) {
   revalidatePath(`/projects/${projectId}`)
   redirect(`/projects/${projectId}`)
 }
+
+export async function deleteProject(projectId: string) {
+  const supabase = await createClient()
+
+  // Due to ON DELETE CASCADE (or similar foreign keys), deleting a project might delete tasks.
+  // Alternatively, the user's Supabase schema will handle cascading deletes.
+  const { error } = await supabase
+    .from('projects')
+    .delete()
+    .eq('id', projectId)
+
+  if (error) {
+    throw new Error(error.message)
+  }
+
+  revalidatePath('/dashboard')
+  revalidatePath('/projects')
+  redirect('/dashboard')
+}
