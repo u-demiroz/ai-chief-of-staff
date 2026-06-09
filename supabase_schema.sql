@@ -6,6 +6,7 @@ create table public.profiles (
   id uuid references auth.users on delete cascade not null primary key,
   email text not null,
   name text,
+  weekly_capacity_hours integer default 20,
   created_at timestamp with time zone default timezone('utc'::text, now()) not null,
   updated_at timestamp with time zone default timezone('utc'::text, now()) not null
 );
@@ -51,6 +52,12 @@ create table public.projects (
   stage text,
   health_score integer default 100,
   health_reason text,
+  momentum integer default 0,
+  time_to_revenue integer default 0,
+  strategic_value integer default 0,
+  portfolio_priority_score integer default 0,
+  board_decision text default 'TBD', -- Focus, Minimum Interest, Freeze, TBD
+  allocated_hours integer default 0,
   created_at timestamp with time zone default timezone('utc'::text, now()) not null,
   updated_at timestamp with time zone default timezone('utc'::text, now()) not null
 );

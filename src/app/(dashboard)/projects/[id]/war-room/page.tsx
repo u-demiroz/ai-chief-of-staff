@@ -13,6 +13,7 @@ export default function WarRoomPage({ params }: { params: Promise<{ id: string }
   const [context, setContext] = useState('')
   const [status, setStatus] = useState<'idle' | 'visionary' | 'skeptic' | 'operator' | 'judging' | 'complete'>('idle')
   const [discussion, setDiscussion] = useState<{ visionary?: string, skeptic?: string, operator?: string }>({})
+  const [isDeepResearch, setIsDeepResearch] = useState(false)
   const [judgeResult, setJudgeResult] = useState<any>(null)
   const [error, setError] = useState<string | null>(null)
   const [saving, setSaving] = useState(false)
@@ -32,34 +33,31 @@ export default function WarRoomPage({ params }: { params: Promise<{ id: string }
     setJudgeResult(null)
 
     try {
-      // 1. Visionary
       setStatus('visionary')
       const vRes = await fetch('/api/war-room', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ projectId: id, question, context, action: 'visionary' })
+        body: JSON.stringify({ projectId: id, question, context, action: 'visionary', isDeepResearch })
       })
       const vData = await vRes.json()
       if (!vRes.ok) throw new Error(typeof vData.error === 'string' ? vData.error : JSON.stringify(vData.error || vData))
       setDiscussion(prev => ({ ...prev, visionary: vData.visionary }))
 
-      // 2. Skeptic
       setStatus('skeptic')
       const sRes = await fetch('/api/war-room', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ projectId: id, question, context, action: 'skeptic', visionaryRes: vData.visionary })
+        body: JSON.stringify({ projectId: id, question, context, action: 'skeptic', visionaryRes: vData.visionary, isDeepResearch })
       })
       const sData = await sRes.json()
       if (!sRes.ok) throw new Error(typeof sData.error === 'string' ? sData.error : JSON.stringify(sData.error || sData))
       setDiscussion(prev => ({ ...prev, skeptic: sData.skeptic }))
 
-      // 3. Operator
       setStatus('operator')
       const oRes = await fetch('/api/war-room', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ projectId: id, question, context, action: 'operator', visionaryRes: vData.visionary, skepticRes: sData.skeptic })
+        body: JSON.stringify({ projectId: id, question, context, action: 'operator', visionaryRes: vData.visionary, skepticRes: sData.skeptic, isDeepResearch })
       })
       const oData = await oRes.json()
       if (!oRes.ok) throw new Error(typeof oData.error === 'string' ? oData.error : JSON.stringify(oData.error || oData))
@@ -77,7 +75,8 @@ export default function WarRoomPage({ params }: { params: Promise<{ id: string }
           action: 'judge',
           visionaryRes: vData.visionary,
           skepticRes: sData.skeptic,
-          operatorRes: oData.operator
+          operatorRes: oData.operator,
+          isDeepResearch
         })
       })
       const jData = await jRes.json()
@@ -160,6 +159,19 @@ export default function WarRoomPage({ params }: { params: Promise<{ id: string }
                 placeholder="Şu an elimizde şu kadar bütçe var..."
                 className="w-full rounded-md border border-zinc-800 bg-zinc-950 px-3 py-2 text-sm text-zinc-100 focus:border-zinc-500 focus:outline-none focus:ring-1 focus:ring-zinc-500" 
               />
+            </div>
+
+            <div className="flex items-center gap-2">
+              <input 
+                type="checkbox" 
+                id="deepResearch" 
+                checked={isDeepResearch}
+                onChange={(e) => setIsDeepResearch(e.target.checked)}
+                className="w-4 h-4 rounded border-zinc-800 bg-zinc-950 accent-blue-600"
+              />
+              <label htmlFor="deepResearch" className="text-sm font-medium text-blue-400">
+                Deep Research War Room (Geçmiş Şirket Hafızasını Kullanarak Strateji Üret)
+              </label>
             </div>
           </div>
 

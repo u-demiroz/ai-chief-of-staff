@@ -11,21 +11,24 @@ export async function POST(req: Request) {
     }
 
     const body = await req.json()
-    const { projectId, question, context, action, visionaryRes, skepticRes, operatorRes } = body
+    const { projectId, question, context, action, visionaryRes, skepticRes, operatorRes, isDeepResearch } = body
 
     // 1. Fetch Project Memory
-    const { data: project } = await supabase.from('projects').select('*').eq('id', projectId).single()
-    const { data: tasks } = await supabase.from('tasks').select('*').eq('project_id', projectId).neq('status', 'done')
-    const { data: pastDecisions } = await supabase.from('decisions').select('*').eq('project_id', projectId).order('created_at', { ascending: false }).limit(3)
-    const { data: notes } = await supabase.from('project_notes').select('*').eq('project_id', projectId).order('created_at', { ascending: false }).limit(5)
+    let systemContext = ""
+    let project = null
 
-    const systemContext = `
+    if (projectId && projectId !== 'global') {
+      const { data: p } = await supabase.from('projects').select('*').eq('id', projectId).single()
+      project = p
+      const { data: tasks } = await supabase.from('tasks').select('*').eq('project_id', projectId).neq('status', 'done')
+      const { data: pastDecisions } = await supabase.from('decisions').select('*').eq('project_id', projectId).order('created_at', { ascending: false }).limit(3)
+      const { data: notes } = await supabase.from('project_notes').select('*').eq('project_id', projectId).order('created_at', { ascending: false }).limit(5)
+
+      systemContext = `
 PROJE BAĞLAMI:
-Adı: ${project.title || 'Belirtilmemiş'}
-Hedef: ${project.goal || 'Belirtilmemiş'}
-Mevcut Durum: ${project.current_status || 'Belirtilmemiş'}
-Aşama: ${project.stage || 'Belirtilmemiş'}
-Kategori: ${project.category || 'Belirtilmemiş'}
+Adı: ${project?.title || 'Belirtilmemiş'}
+Aşama: ${project?.stage || 'Belirtilmemiş'}
+Yönetim Kurulu Kararı (Board Decision): ${project?.board_decision || 'Belirtilmemiş'}
 
 Açık Görevler:
 ${tasks?.map(t => `- ${t.title} (${t.status})`).join('\n') || 'Yok'}
@@ -36,6 +39,22 @@ ${pastDecisions?.map(d => `- Soru: ${d.question}\n  Karar: ${d.final_decision}`)
 Notlar:
 ${notes?.map(n => `- ${n.content}`).join('\n') || 'Yok'}
 `
+    }
+
+    if (isDeepResearch) {
+      // Fetch entire portfolio history for lessons learned and veto logic
+      const { data: allProjects } = await supabase.from('projects').select('id, title, health_score, board_decision').neq('stage', 'Öldürüldü')
+      const { data: implementedDecisions } = await supabase.from('decisions').select('question, final_decision, outcome, projects(title)').eq('status', 'implemented').order('implemented_at', { ascending: false }).limit(10)
+      
+      systemContext += `\n
+[DEEP RESEARCH MODU AKTİF - PORTFÖY HAFIZASI]
+AKTİF PROJELER (KAPASİTE DURUMU):
+${allProjects?.map(p => `- ${p.title} (Sağlık: ${p.health_score}, Board: ${p.board_decision})`).join('\n')}
+
+ÖĞRENİLEN DERSLER (Geçmişte uygulanan stratejiler ve sonuçları):
+${implementedDecisions?.map(d => `- Proje: ${(d.projects as any)?.title}\n  Karar: ${d.final_decision}\n  Sonuç: ${d.outcome}`).join('\n\n') || 'Henüz şirket hafızasında ders çıkarılacak sonuçlanmış veri yok.'}
+`
+    }
 
     const callOpenRouter = async (modelName: string, systemPrompt: string, userPrompt: string) => {
       const model = modelName
@@ -114,12 +133,13 @@ OPERASYONCU (İkisini harmanladı):
 ${operatorRes}
 
 GÖREVİN:
-1. Önceki görüşleri değerlendir, önceki açık görevleri ve kararları kontrol et. Eğer kullanıcı geçmişte alınan kararları uygulamadan yeni şeyler istiyorsa, SADECE bunu yüzüne vur ve REDDET (doNotDo kısmına açıkla, finalDecision olarak da yeni iş uydurma, eski işleri yap de).
-2. Eğer geçerli bir istekse, NET BİR KARAR VER. Operasyoncu'nun planını temel alabilirsin.
-3. 3-7 uygulanabilir görev çıkar (tasks array). Eğer eski işler bitmediyse görev çıkarma, boş array gönder.
-4. Bu görevleri günlere yay (calendarPlan array - dateOffset 0 = bugün, 1 = yarın vb.).
-5. "Kesinlikle yapılmaması gerekenler" listesi çıkar (doNotDo).
-6. Kararı özetle (summaryForMemory).
+1. Önceki görüşleri değerlendir, önceki açık görevleri ve "DEEP RESEARCH MODU"ndaki 'Öğrenilen Dersler'i (Lessons Learned) DİKKATLE KONTROL ET.
+2. EĞER kullanıcı daha önce denenmiş ve başarısız olmuş bir stratejiyi istiyorsa VETO ET (DoNotDo'ya ekle ve Reddet).
+3. EĞER kullanıcı "Yeni Proje" açmak istiyorsa ve Portföydeki diğer projelerin sağlığı kötüyse KESİN BİR DİLLE VETO ET.
+4. Çıkaracağın görevler (tasks array) UCU AÇIK OLAMAZ. "Araştır, incele, değerlendir" YASAKTIR. Sadece spesifik, isimli, sonuç odaklı eylemler çıkar.
+5. Bu görevleri günlere yay (calendarPlan array).
+6. "Kesinlikle yapılmaması gerekenler" listesi çıkar (doNotDo). Veto edilen konular burada olmalı.
+7. Kararı özetle (summaryForMemory).
 
 YANIT FORMATI (SADECE VE SADECE GEÇERLİ JSON OLACAK):
 {

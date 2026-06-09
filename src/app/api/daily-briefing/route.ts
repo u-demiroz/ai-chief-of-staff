@@ -11,20 +11,20 @@ export async function POST() {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    // Fetch all active projects
-    const { data: projects } = await supabase.from('projects').select('id, title, stage, priority_score').neq('stage', 'Öldürüldü').neq('stage', 'Donduruldu')
-    const { data: tasks } = await supabase.from('tasks').select('id, title, status, projects(title, id)').neq('status', 'done')
+    // Fetch all active projects, now including board_decision and priority_score
+    const { data: projects } = await supabase.from('projects').select('id, title, stage, board_decision, portfolio_priority_score').neq('stage', 'Öldürüldü')
+    const { data: tasks } = await supabase.from('tasks').select('id, title, status, projects(title, id, board_decision)').neq('status', 'done')
     const { data: pastDecisions } = await supabase.from('decisions').select('id, final_decision, projects(title, id)').neq('status', 'implemented').order('created_at', { ascending: false }).limit(5)
     
     const todayStr = format(new Date(), 'yyyy-MM-dd')
     const { data: lateEvents } = await supabase.from('calendar_events').select('id, title, event_date, projects(title, id)').lt('event_date', todayStr).neq('status', 'completed').neq('status', 'cancelled')
 
     const systemContext = `
-TÜM AKTİF PROJELER:
-${projects?.map(p => `- ID: ${p.id} | ${p.title} (${p.stage}) - Öncelik: ${p.priority_score}`).join('\n') || 'Yok'}
+TÜM AKTİF PROJELER (EXECUTIVE BOARD KARARLARI):
+${projects?.map(p => `- ID: ${p.id} | ${p.title} - Yönetim Kurulu Kararı: ${p.board_decision} | Öncelik Skoru: ${p.portfolio_priority_score}`).join('\n') || 'Yok'}
 
 AÇIK GÖREVLER:
-${tasks?.map(t => `- ID: ${t.id} | Proje: [${(t.projects as any)?.title}] ${t.title} (${t.status})`).join('\n') || 'Yok'}
+${tasks?.map(t => `- ID: ${t.id} | Proje: [${(t.projects as any)?.title}] (${(t.projects as any)?.board_decision}) ${t.title} (${t.status})`).join('\n') || 'Yok'}
 
 GECİKEN İŞLER:
 ${lateEvents?.map(e => `- ID: ${e.id} | Proje: [${(e.projects as any)?.title}] ${e.title} (Planlanan: ${e.event_date})`).join('\n') || 'Yok'}
@@ -41,11 +41,14 @@ BAĞLAM:
 ${systemContext}
 
 GÖREVİN:
-1. Genel durumu analiz et. Geciken işler veya uygulanmayan kararlar varsa kullanıcıyı SERTÇE uyar/eleştir.
-2. Bugün odaklanması gereken maksimum 1-2 proje seç.
+1. "Yönetim Kurulu Kararı (board_decision)" verilerine bak. SADECE "Focus" ve "Minimum Interest" olan projelere görev ata. "Freeze" olanlara KESİNLİKLE DOKUNMA.
+2. Geciken işler veya uygulanmayan kararlar varsa kullanıcıyı SERTÇE uyar/eleştir.
 3. Bugün tamamlanması gereken (gecikenler dahil) en fazla 3-5 görev çıkar/seç. Eğer mevcut açık/geciken görev varsa ONLARI kullan. Yoksa yeni görev yaz.
-4. "Bugün kesinlikle yapılmaması gerekenler" listesi oluştur (doNotDoToday).
-5. Bugünün görevlerini takvime yay (calendarPlan). Bugünün tarihi: ${todayStr}
+4. GÖREV YAZMA KURALLARI (YASAKLAR):
+   - "Araştır, incele, değerlendir, pazar analizi yap, hedef kitle bul" gibi UCU AÇIK ve JENERİK görevler KESİNLİKLE YASAKTIR.
+   - Her görev SPESİFİK, UYGULANABİLİR, İSİM/PLATFORM BELİRTİLMİŞ ve SONUÇ ODAKLI olmak zorundadır. (Örn: Yanlış: "Influencer araştır". Doğru: "Instagram'da nargile konseptli 3 micro-influencer'a DM at ve fiyat iste.")
+5. "Bugün kesinlikle yapılmaması gerekenler" listesi oluştur (doNotDoToday). Dondurulmuş projeler burada yer almalı.
+6. Bugünün görevlerini takvime yay (calendarPlan). Bugünün tarihi: ${todayStr}
 
 YANIT FORMATI (SADECE JSON OLACAK, MARKDOWN YOK):
 {
