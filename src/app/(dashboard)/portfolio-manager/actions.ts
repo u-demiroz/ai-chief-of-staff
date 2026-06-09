@@ -6,6 +6,8 @@ import { createOpenAI } from '@ai-sdk/openai'
 import { z } from 'zod'
 import { revalidatePath } from 'next/cache'
 
+import { calculateProjectScores } from '@/lib/scoringEngine'
+
 const openai = createOpenAI({
   baseURL: 'https://openrouter.ai/api/v1',
   apiKey: process.env.OPENROUTER_API_KEY,
@@ -25,60 +27,69 @@ export async function runPortfolioManager() {
   const weeklyCapacity = profile?.weekly_capacity_hours || 20
 
   // 2. Fetch all projects
-  const { data: projects } = await supabase.from('projects').select('*')
+  const { data: projects } = await supabase.from('projects').select('*').neq('stage', 'Öldürüldü')
   if (!projects || projects.length === 0) return
 
-  // 3. Fetch summary of tasks for each project
-  const projectSummaries = await Promise.all(projects.map(async (p) => {
-    const { count: openTasks } = await supabase
-      .from('tasks')
-      .select('*', { count: 'exact', head: true })
+  // 3. For each project, fetch latest metrics, calculate scores, and prepare for AI
+  const projectDataForAi = []
+  const computedScoresMap: Record<string, any> = {}
+
+  for (const p of projects) {
+    // Fetch latest metrics
+    const { data: metricsArr } = await supabase
+      .from('project_metrics')
+      .select('*')
       .eq('project_id', p.id)
-      .neq('status', 'done')
-      .neq('status', 'cancelled')
+      .order('metric_date', { ascending: false })
+      .order('created_at', { ascending: false })
+      .limit(1)
     
-    return {
+    const latestMetrics = metricsArr && metricsArr.length > 0 ? metricsArr[0] : null
+    
+    // Calculate deterministic scores
+    const scores = calculateProjectScores(latestMetrics)
+    computedScoresMap[p.id] = scores
+
+    projectDataForAi.push({
       id: p.id,
       title: p.title,
-      revenue_potential: p.revenue_potential,
-      health_score: p.health_score,
-      health_reason: p.health_reason,
-      openTasks: openTasks || 0
-    }
-  }))
+      ceo_brief: p.ceo_brief,
+      ...scores
+    })
+  }
 
   const systemPrompt = `Sen şirketin AI Yönetim Kurulusun (Executive Board).
 Görevin görev yazmak değil, kullanıcının SINIRLI ZAMANINI (Dikkatini) doğru projelere dağıtmaktır.
 Kullanıcının bu hafta projelere ayırabileceği toplam kapasite: ${weeklyCapacity} saattir.
 
-PORTFÖYÜNDEKİ PROJELER:
-${JSON.stringify(projectSummaries, null, 2)}
+DİKKAT: SKORLAR SİSTEM TARAFINDAN GERÇEK VERİLERE DAYANARAK HESAPLANMIŞTIR.
+Sen skor üretmiyorsun. Senin görevin bu skorları ve sinyalleri "YORUMLAMAK" ve stratejik bir karar vermektir.
+
+PORTFÖYÜNDEKİ PROJELER VE SİSTEMİN HESAPLADIĞI SKORLAR:
+${JSON.stringify(projectDataForAi, null, 2)}
 
 KURALLAR:
-1. Her proje için 0-100 arası şu skorları belirle: 'momentum', 'time_to_revenue', 'strategic_value', 'portfolio_priority_score' (Ağırlıklı ortalama).
-2. Her proje için bir 'board_decision' ver:
-   - "Focus": Kapasitenin büyük çoğunluğunu alacak, öncelikli proje.
+1. Her proje için bir 'board_decision' ver:
+   - "Focus": Kapasitenin büyük çoğunluğunu alacak, Momentum ve Growth skoru yüksek veya Revenue üreten öncelikli proje.
    - "Minimum Interest": Sadece kritik işlerin yapılacağı proje (1-2 saat).
-   - "Freeze": Bu hafta tamamen dondurulan, vakit harcanmayacak proje (0 saat).
-3. 'allocated_hours' alanına her proje için bu hafta harcanması gereken tahmini saati yaz. Tüm projelerin saat toplamı tam olarak ${weeklyCapacity} saat OLMALIDIR.
-4. 'reasoning' (Sebep) ALANI ÇOK ÖNEMLİDİR. Sadece bir cümle değil, alt alta maddeler halinde NİYE bu kararı verdiğini net verilerle açıkla. Örnek: "Son 30 günde kullanıcı artışı yok. | 12 açık görev bekliyor. | Gelir modeli denenmemiş." (Maddeleri ayırmak için | kullanabilirsin veya doğrudan \n koyabilirsin)
+   - "Freeze": Bu hafta tamamen dondurulan, vakit harcanmayacak proje (0 saat). (Eğer veri eksiği çok fazlaysa veya skorlar sıfırsa freeze edebilirsin).
+2. 'allocated_hours' alanına her proje için bu hafta harcanması gereken tahmini saati yaz. Tüm projelerin saat toplamı tam olarak ${weeklyCapacity} saat OLMALIDIR.
+3. 'reasoning' ALANI: Sistem skorlarını baz alarak "NİYE" bu kararı verdiğini 2-3 madde halinde açıkla. (Örn: "Momentum skoru 80 çünkü son 7 günde ciddi kullanıcı artışı var. | Ancak gelir verisi eksik. | Organik büyüme olduğu için 10 saat ayrılmalı.")
+4. 'recommended_action' ALANI: Bu proje için bu haftaki EN KRİTİK stratejik hamle ne olmalı? Genel geçer şeyler yazma. (Örn: "Influencer bul" DEME. "IG takipçi artışı iyi, DM otomasyonu kurarak dönüşümü test et" de).
 
-ÇIKTI FORNATI (JSON):
-Bir array döndür. Array içindeki her obje proje ID'sini ve yeni hesaplanan değerlerini içermelidir.
+ÇIKTI FORMATI (JSON):
+Bir array döndür. Array içindeki her obje proje ID'sini ve senin yorumlarını içermelidir.
 `
 
   const result = await generateObject({
-    model: openai('openai/gpt-4o-mini'),
+    model: openai('openai/gpt-4o'),
     schema: z.object({
       evaluations: z.array(z.object({
         id: z.string(),
-        momentum: z.number(),
-        time_to_revenue: z.number(),
-        strategic_value: z.number(),
-        portfolio_priority_score: z.number(),
         board_decision: z.enum(['Focus', 'Minimum Interest', 'Freeze']),
         allocated_hours: z.number(),
-        reasoning: z.string() // Kullanıcıya bu kararın neden alındığını açıklayan 1 cümle
+        reasoning: z.string(),
+        recommended_action: z.string()
       })),
       newProjectVeto: z.object({
         isAllowed: z.boolean(),
@@ -91,18 +102,35 @@ Bir array döndür. Array içindeki her obje proje ID'sini ve yeni hesaplanan de
   // 4. Update the DB with the evaluations
   const evaluations = result.object.evaluations
   for (const evalResult of evaluations) {
+    const scores = computedScoresMap[evalResult.id]
+
+    // 4.1 Update projects table (sync scores so dashboard works)
     await supabase.from('projects').update({
-      momentum: evalResult.momentum,
-      time_to_revenue: evalResult.time_to_revenue,
-      strategic_value: evalResult.strategic_value,
-      portfolio_priority_score: evalResult.portfolio_priority_score,
+      momentum: scores.momentumScore,
+      health_score: scores.healthScore || scores.portfolioPriorityScore, // Default fallback
+      portfolio_priority_score: scores.portfolioPriorityScore,
       board_decision: evalResult.board_decision,
       allocated_hours: evalResult.allocated_hours,
-      health_reason: evalResult.reasoning // update health reason with board reasoning
+      health_reason: evalResult.reasoning
     }).eq('id', evalResult.id)
+
+    // 4.2 Insert into project_snapshots
+    await supabase.from('project_snapshots').insert({
+      user_id: user.id,
+      project_id: evalResult.id,
+      summary: evalResult.reasoning,
+      momentum_score: scores.momentumScore,
+      growth_score: scores.growthScore,
+      revenue_score: scores.revenueScore,
+      data_completeness_score: scores.dataCompletenessScore,
+      confidence_score: scores.confidenceScore,
+      portfolio_priority_score: scores.portfolioPriorityScore,
+      key_signals_json: scores.keySignals,
+      missing_data_json: scores.missingData,
+      recommendation: evalResult.recommended_action
+    })
   }
 
-  // Also return the Veto decision so the dashboard can display it
   revalidatePath('/dashboard')
   return result.object
 }

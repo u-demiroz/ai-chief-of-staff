@@ -191,3 +191,91 @@ create trigger update_decisions_updated_at before update on decisions for each r
 create trigger update_project_notes_updated_at before update on project_notes for each row execute procedure update_updated_at_column();
 create trigger update_calendar_events_updated_at before update on calendar_events for each row execute procedure update_updated_at_column();
 create trigger update_profiles_updated_at before update on profiles for each row execute procedure update_updated_at_column();
+
+-- 7. PROJECT METRICS
+create table public.project_metrics (
+  id uuid default uuid_generate_v4() primary key,
+  user_id uuid references auth.users on delete cascade not null default auth.uid(),
+  project_id uuid references public.projects on delete cascade not null,
+  metric_date date not null default current_date,
+  users_total integer,
+  users_new_24h integer,
+  users_new_7d integer,
+  users_new_30d integer,
+  active_users_24h integer,
+  active_users_7d integer,
+  active_users_30d integer,
+  app_downloads_total integer,
+  app_downloads_7d integer,
+  app_downloads_30d integer,
+  instagram_followers integer,
+  instagram_followers_7d_growth integer,
+  instagram_posts_30d integer,
+  instagram_best_post_reach integer,
+  youtube_subscribers integer,
+  youtube_views_7d integer,
+  revenue_total numeric,
+  revenue_30d numeric,
+  ad_spend_30d numeric,
+  conversions_30d integer,
+  retention_rate numeric,
+  custom_json jsonb,
+  created_at timestamp with time zone default timezone('utc'::text, now()) not null,
+  updated_at timestamp with time zone default timezone('utc'::text, now()) not null
+);
+
+alter table public.project_metrics enable row level security;
+create policy "Users can view own metrics" on project_metrics for select using (auth.uid() = user_id);
+create policy "Users can insert own metrics" on project_metrics for insert with check (auth.uid() = user_id);
+create policy "Users can update own metrics" on project_metrics for update using (auth.uid() = user_id);
+create policy "Users can delete own metrics" on project_metrics for delete using (auth.uid() = user_id);
+create trigger update_project_metrics_updated_at before update on project_metrics for each row execute procedure update_updated_at_column();
+
+-- 8. DATA SOURCES
+create table public.data_sources (
+  id uuid default uuid_generate_v4() primary key,
+  user_id uuid references auth.users on delete cascade not null default auth.uid(),
+  project_id uuid references public.projects on delete cascade not null,
+  source_type text not null, -- manual, custom_api, supabase, firebase, instagram, youtube, app_store, google_play, amazon, walmart, meta_ads, other
+  source_name text not null,
+  api_url text,
+  auth_type text,
+  api_key_encrypted text,
+  last_sync_at timestamp with time zone,
+  last_sync_status text,
+  created_at timestamp with time zone default timezone('utc'::text, now()) not null,
+  updated_at timestamp with time zone default timezone('utc'::text, now()) not null
+);
+
+alter table public.data_sources enable row level security;
+create policy "Users can view own data sources" on data_sources for select using (auth.uid() = user_id);
+create policy "Users can insert own data sources" on data_sources for insert with check (auth.uid() = user_id);
+create policy "Users can update own data sources" on data_sources for update using (auth.uid() = user_id);
+create policy "Users can delete own data sources" on data_sources for delete using (auth.uid() = user_id);
+create trigger update_data_sources_updated_at before update on data_sources for each row execute procedure update_updated_at_column();
+
+-- 9. PROJECT SNAPSHOTS
+create table public.project_snapshots (
+  id uuid default uuid_generate_v4() primary key,
+  user_id uuid references auth.users on delete cascade not null default auth.uid(),
+  project_id uuid references public.projects on delete cascade not null,
+  snapshot_date timestamp with time zone default timezone('utc'::text, now()) not null,
+  summary text,
+  momentum_score integer default 0,
+  growth_score integer default 0,
+  revenue_score integer default 0,
+  health_score integer default 0,
+  attention_score integer default 0,
+  data_completeness_score integer default 0,
+  confidence_score integer default 0,
+  portfolio_priority_score integer default 0,
+  key_signals_json jsonb,
+  missing_data_json jsonb,
+  recommendation text,
+  created_at timestamp with time zone default timezone('utc'::text, now()) not null
+);
+
+alter table public.project_snapshots enable row level security;
+create policy "Users can view own snapshots" on project_snapshots for select using (auth.uid() = user_id);
+create policy "Users can insert own snapshots" on project_snapshots for insert with check (auth.uid() = user_id);
+create policy "Users can delete own snapshots" on project_snapshots for delete using (auth.uid() = user_id);
