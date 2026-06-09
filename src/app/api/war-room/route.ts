@@ -25,19 +25,24 @@ export async function POST(req: Request) {
       const { data: notes } = await supabase.from('project_notes').select('*').eq('project_id', projectId).order('created_at', { ascending: false }).limit(5)
 
       systemContext = `
-PROJE BAĞLAMI:
+PROJE BAĞLAMI (CONTEXT FIRST):
 Adı: ${project?.title || 'Belirtilmemiş'}
 Aşama: ${project?.stage || 'Belirtilmemiş'}
-Yönetim Kurulu Kararı (Board Decision): ${project?.board_decision || 'Belirtilmemiş'}
+Yönetim Kurulu Kararı: ${project?.board_decision || 'Belirtilmemiş'}
 
-Açık Görevler:
+CEO BRIEF (ŞİRKET HAFIZASI VE ANA METRİKLER):
+${project?.ceo_brief || 'Henüz şirket hafızası (CEO Brief) girilmemiş. Mantıklı ve ayakları yere basan stratejiler kurmaya çalış.'}
+
+AÇIK GÖREVLER:
 ${tasks?.map(t => `- ${t.title} (${t.status})`).join('\n') || 'Yok'}
 
-Geçmiş Kararlar:
+GEÇMİŞ KARARLAR VE ÖĞRENİLEN DERSLER:
 ${pastDecisions?.map(d => `- Soru: ${d.question}\n  Karar: ${d.final_decision}`).join('\n') || 'Yok'}
 
-Notlar:
+PROJE NOTLARI:
 ${notes?.map(n => `- ${n.content}`).join('\n') || 'Yok'}
+
+ÖNEMLİ KURAL: Yukarıda "CEO Brief", "Geçmiş Kararlar" veya "Notlar" içinde daha önce denenmiş, başarısız olmuş veya halihazırda yapılmakta olan stratejileri ASLA YENİ BİR FİKİR GİBİ SUNMA (Anti-Tekrar kuralı).
 `
     }
 
@@ -133,13 +138,13 @@ OPERASYONCU (İkisini harmanladı):
 ${operatorRes}
 
 GÖREVİN:
-1. Önceki görüşleri değerlendir, önceki açık görevleri ve "DEEP RESEARCH MODU"ndaki 'Öğrenilen Dersler'i (Lessons Learned) DİKKATLE KONTROL ET.
-2. EĞER kullanıcı daha önce denenmiş ve başarısız olmuş bir stratejiyi istiyorsa VETO ET (DoNotDo'ya ekle ve Reddet).
-3. EĞER kullanıcı "Yeni Proje" açmak istiyorsa ve Portföydeki diğer projelerin sağlığı kötüyse KESİN BİR DİLLE VETO ET.
-4. Çıkaracağın görevler (tasks array) UCU AÇIK OLAMAZ. "Araştır, incele, değerlendir" YASAKTIR. Sadece spesifik, isimli, sonuç odaklı eylemler çıkar.
-5. Bu görevleri günlere yay (calendarPlan array).
-6. "Kesinlikle yapılmaması gerekenler" listesi çıkar (doNotDo). Veto edilen konular burada olmalı.
-7. Kararı özetle (summaryForMemory).
+1. Önceki görüşleri değerlendir, önceki açık görevleri ve "CEO Brief" ile 'Öğrenilen Dersler'i (Lessons Learned) DİKKATLE KONTROL ET.
+2. EĞER kullanıcı daha önce denenmiş ve başarısız olmuş bir stratejiyi istiyorsa veya tavsiye edildiyse KESİNLİKLE VETO ET (Anti-Tekrar kuralı).
+3. "Araştır, İncele, Değerlendir, Analiz yap, Bul, Hedef kitle analizi yap, Influencer bul, İş birliği yap, Tasarım revizyonu yap, Geri bildirim topla" gibi eylemler içeren GENEL VE SONUÇSUZ GÖREVLER YASAKTIR.
+4. Çıkaracağın görevler (tasks array) UCU AÇIK OLAMAZ. Sadece spesifik, isimli, sonuç odaklı ve metrik içeren eylemler çıkar.
+5. Görevlerde 'reason', 'success_criteria', 'expected_output' ve 'estimated_time' (Örn: "60 dakika") KESİNLİKLE DOLDURULMALIDIR.
+6. Bu görevleri günlere yay (calendarPlan array).
+7. "Kesinlikle yapılmaması gerekenler" listesi çıkar (doNotDo).
 
 YANIT FORMATI (SADECE VE SADECE GEÇERLİ JSON OLACAK):
 {
@@ -153,7 +158,15 @@ YANIT FORMATI (SADECE VE SADECE GEÇERLİ JSON OLACAK):
     "timing": 0
   },
   "tasks": [
-    { "title": "...", "description": "...", "priority": "high" }
+    { 
+      "title": "...", 
+      "description": "...", 
+      "priority": "high",
+      "reason": "Neden bu görev seçildi?",
+      "success_criteria": "Başarı kriteri nedir?",
+      "expected_output": "Beklenen çıktı nedir?",
+      "estimated_time": "Tahmini süre nedir?"
+    }
   ],
   "calendarPlan": [
     { "taskTitle": "...", "dateOffset": 0, "startTime": "10:00", "endTime": "11:00", "reason": "..." }

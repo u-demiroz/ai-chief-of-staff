@@ -10,6 +10,10 @@ type Task = {
   status: string
   due_date?: string
   notes?: string
+  reason?: string
+  success_criteria?: string
+  expected_output?: string
+  estimated_time?: string
   project_id: string
   projects?: { title: string }
 }
@@ -114,6 +118,36 @@ export function TaskList({ tasks, projectId }: { tasks: Task[], projectId?: stri
                   <div>
                     <h4 className="text-xs font-semibold text-zinc-500 mb-1">Açıklama</h4>
                     <p className="text-sm text-zinc-300 whitespace-pre-wrap">{task.description}</p>
+                  </div>
+                )}
+
+                {task.reason && (
+                  <div className="bg-blue-950/20 p-3 rounded-md border border-blue-900/30">
+                    <h4 className="text-xs font-semibold text-blue-400 mb-1">Neden Bu Görev Seçildi?</h4>
+                    <p className="text-sm text-zinc-300">{task.reason}</p>
+                  </div>
+                )}
+
+                {(task.success_criteria || task.expected_output || task.estimated_time) && (
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 p-3 rounded-md border border-zinc-800 bg-zinc-950/50">
+                    {task.success_criteria && (
+                      <div>
+                        <h4 className="text-xs font-semibold text-emerald-500 mb-1">Başarı Kriteri</h4>
+                        <p className="text-sm text-zinc-300">{task.success_criteria}</p>
+                      </div>
+                    )}
+                    {task.expected_output && (
+                      <div>
+                        <h4 className="text-xs font-semibold text-purple-400 mb-1">Beklenen Çıktı</h4>
+                        <p className="text-sm text-zinc-300">{task.expected_output}</p>
+                      </div>
+                    )}
+                    {task.estimated_time && (
+                      <div>
+                        <h4 className="text-xs font-semibold text-orange-400 mb-1">Tahmini Süre</h4>
+                        <p className="text-sm text-zinc-300">{task.estimated_time}</p>
+                      </div>
+                    )}
                   </div>
                 )}
 

@@ -61,6 +61,7 @@ KURALLAR:
    - "Minimum Interest": Sadece kritik işlerin yapılacağı proje (1-2 saat).
    - "Freeze": Bu hafta tamamen dondurulan, vakit harcanmayacak proje (0 saat).
 3. 'allocated_hours' alanına her proje için bu hafta harcanması gereken tahmini saati yaz. Tüm projelerin saat toplamı tam olarak ${weeklyCapacity} saat OLMALIDIR.
+4. 'reasoning' (Sebep) ALANI ÇOK ÖNEMLİDİR. Sadece bir cümle değil, alt alta maddeler halinde NİYE bu kararı verdiğini net verilerle açıkla. Örnek: "Son 30 günde kullanıcı artışı yok. | 12 açık görev bekliyor. | Gelir modeli denenmemiş." (Maddeleri ayırmak için | kullanabilirsin veya doğrudan \n koyabilirsin)
 
 ÇIKTI FORNATI (JSON):
 Bir array döndür. Array içindeki her obje proje ID'sini ve yeni hesaplanan değerlerini içermelidir.

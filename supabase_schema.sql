@@ -58,6 +58,7 @@ create table public.projects (
   portfolio_priority_score integer default 0,
   board_decision text default 'TBD', -- Focus, Minimum Interest, Freeze, TBD
   allocated_hours integer default 0,
+  ceo_brief text,
   created_at timestamp with time zone default timezone('utc'::text, now()) not null,
   updated_at timestamp with time zone default timezone('utc'::text, now()) not null
 );
@@ -81,6 +82,10 @@ create table public.tasks (
   priority text default 'medium', -- low, medium, high, critical
   due_date timestamp with time zone,
   notes text,
+  reason text,
+  success_criteria text,
+  expected_output text,
+  estimated_time text,
   source text default 'manual', -- manual, ai_generated, war_room_decision, daily_briefing, calendar_plan
   created_at timestamp with time zone default timezone('utc'::text, now()) not null,
   updated_at timestamp with time zone default timezone('utc'::text, now()) not null,

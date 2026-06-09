@@ -45,6 +45,14 @@ export default async function EditProjectPage({ params }: { params: Promise<{ id
           </div>
 
           <div>
+            <label htmlFor="ceo_brief" className="block text-sm font-medium text-zinc-300 mb-1">
+              CEO Brief (Şirket Hafızası)
+              <span className="block text-xs text-zinc-500 mt-1 font-normal">Bu projeyle ilgili tüm metrikleri, denenmiş stratejileri, geçmiş başarıları veya başarısızlıkları buraya not edin. War Room bu bilgileri kullanarak karar verecektir.</span>
+            </label>
+            <textarea id="ceo_brief" name="ceo_brief" defaultValue={project.ceo_brief || ''} rows={6} className="w-full rounded-md border border-zinc-800 bg-zinc-950 px-3 py-2 text-sm text-zinc-100 focus:border-zinc-500 focus:outline-none focus:ring-1 focus:ring-zinc-500 placeholder:text-zinc-600" placeholder="Örn: 1202 mekan kayıtlı, Instagram 500 takipçi, reklam denendi ama geri dönüş alınamadı..." />
+          </div>
+
+          <div>
             <label htmlFor="current_status" className="block text-sm font-medium text-zinc-300 mb-1">Mevcut Durum</label>
             <textarea id="current_status" name="current_status" defaultValue={project.current_status || ''} rows={2} className="w-full rounded-md border border-zinc-800 bg-zinc-950 px-3 py-2 text-sm text-zinc-100 focus:border-zinc-500 focus:outline-none focus:ring-1 focus:ring-zinc-500" />
           </div>

@@ -44,6 +44,10 @@ export async function saveWarRoomDecision(projectId: string, result: any, questi
       title: taskDef.title,
       description: taskDef.description,
       priority: taskDef.priority || 'medium',
+      reason: taskDef.reason,
+      success_criteria: taskDef.success_criteria,
+      expected_output: taskDef.expected_output,
+      estimated_time: taskDef.estimated_time,
       source: 'war_room_decision',
       status: 'todo'
     }).select().single()

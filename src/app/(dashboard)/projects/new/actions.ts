@@ -16,6 +16,7 @@ export async function createProject(formData: FormData) {
     goal: formData.get('goal') as string,
     category: formData.get('category') as string,
     stage: formData.get('stage') as string,
+    ceo_brief: formData.get('ceo_brief') as string,
   }
 
   const { data: project, error } = await supabase

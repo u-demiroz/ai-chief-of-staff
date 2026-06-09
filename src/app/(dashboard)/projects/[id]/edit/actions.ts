@@ -13,6 +13,7 @@ export async function updateProject(projectId: string, formData: FormData) {
   const category = formData.get('category') as string
   const stage = formData.get('stage') as string
   const current_status = formData.get('current_status') as string
+  const ceo_brief = formData.get('ceo_brief') as string
 
   const { error } = await supabase
     .from('projects')
@@ -23,6 +24,7 @@ export async function updateProject(projectId: string, formData: FormData) {
       category,
       stage,
       current_status,
+      ceo_brief,
       updated_at: new Date().toISOString()
     })
     .eq('id', projectId)
