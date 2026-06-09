@@ -33,9 +33,9 @@ export default async function ProjectDetailPage({ params }: { params: Promise<{ 
           <Link href={`/projects/${project.id}/war-room`} className="rounded-md bg-zinc-100 px-4 py-2 text-sm font-medium text-zinc-900 hover:bg-zinc-200 transition-colors">
             War Room Başlat
           </Link>
-          <button className="rounded-md border border-zinc-700 px-4 py-2 text-sm font-medium text-zinc-300 hover:bg-zinc-800 transition-colors">
+          <Link href={`/projects/${project.id}/edit`} className="rounded-md border border-zinc-700 px-4 py-2 text-sm font-medium text-zinc-300 hover:bg-zinc-800 transition-colors">
             Düzenle
-          </button>
+          </Link>
         </div>
       </div>
 
