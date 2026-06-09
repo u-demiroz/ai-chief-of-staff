@@ -6,7 +6,12 @@ import { createOpenAI } from '@ai-sdk/openai'
 import { z } from 'zod'
 
 const openai = createOpenAI({
-  apiKey: process.env.OPENAI_API_KEY,
+  baseURL: 'https://openrouter.ai/api/v1',
+  apiKey: process.env.OPENROUTER_API_KEY,
+  headers: {
+    'HTTP-Referer': 'https://aichiefofstaff.local',
+    'X-Title': 'AI Chief of Staff',
+  }
 })
 
 export async function generateWeeklyBoardReport() {
@@ -49,7 +54,7 @@ Son 7 Gün Kararları: ${JSON.stringify(decisions)}
 `
 
   const result = await generateObject({
-    model: openai('gpt-4o'),
+    model: openai('openai/gpt-4o-mini'),
     schema: z.object({
       executiveSummary: z.string(),
       bestProject: z.object({

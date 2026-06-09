@@ -7,7 +7,12 @@ import { z } from 'zod'
 import { revalidatePath } from 'next/cache'
 
 const openai = createOpenAI({
-  apiKey: process.env.OPENAI_API_KEY,
+  baseURL: 'https://openrouter.ai/api/v1',
+  apiKey: process.env.OPENROUTER_API_KEY,
+  headers: {
+    'HTTP-Referer': 'https://aichiefofstaff.local',
+    'X-Title': 'AI Chief of Staff',
+  }
 })
 
 export async function runPortfolioManager() {
@@ -62,7 +67,7 @@ Bir array döndür. Array içindeki her obje proje ID'sini ve yeni hesaplanan de
 `
 
   const result = await generateObject({
-    model: openai('gpt-4o'),
+    model: openai('openai/gpt-4o-mini'),
     schema: z.object({
       evaluations: z.array(z.object({
         id: z.string(),
